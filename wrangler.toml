@@ -3,23 +3,24 @@ main = "./dist-obf/index.js"
 compatibility_date = "2025-11-21"
 
 # NOTE: Set your account id and any required bindings before publishing.
-# Example:
-# account_id = "your-account-id"
-# Uncomment and set above or provide via environment in your CI.
+# You can either add `account_id = "..."` here, or set the secret
+# `CLOUDFLARE_ACCOUNT_ID` or `CF_ACCOUNT_ID` in your CI provider.
 
 [build]
 command = "npm run build"
 
-[d1_databases]
-DATABASE = { binding = "DB", database_name = "VLESS_DB" }
+# D1 databases should be an array of table objects
+d1_databases = [
+	{ binding = "DB", database_name = "VLESS_DB" }
+]
 
-[wasm_modules]
-# After building with wasm-pack, bind the generated wasm (adjust path as needed)
-vless_parser = { binding = "VLESS_WASM", module = "./src/rust/pkg/vless_parser_bg.wasm" }
+# wasm_modules map module name to the wasm file path
+wasm_modules = { vless_parser = "./src/rust/pkg/vless_parser_bg.wasm" }
 
-[bindings]
-type = "kv_namespace"
-name = "SESSIONS_KV"
+# KV namespaces (optional). If you use a KV namespace, set the binding and id here.
+kv_namespaces = [
+	{ binding = "SESSIONS_KV" }
+]
 
 [vars]
 ADMIN_PATH_PREFIX = "admin"
