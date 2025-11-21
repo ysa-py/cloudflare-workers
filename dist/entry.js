@@ -1,8 +1,11 @@
 // src/entry.ts
+var cachedWorker = null;
 var entry_default = {
   async fetch(request, env, ctx) {
-    const { default: mainWorker } = await import("./-6SN5IBB2.js");
-    return mainWorker.fetch(request, env, ctx);
+    if (!cachedWorker) {
+      cachedWorker = (await import("./-WHF5ACYN.js")).default;
+    }
+    return cachedWorker.fetch(request, env, ctx);
   }
 };
 export {

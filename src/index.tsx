@@ -1,11 +1,32 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { z } from 'zod';
-import { initWasm, parseVlessHeader } from './wasm/wasm';
-import { renderUserPanel } from './views/userView';
-import { renderAdminLogin, renderAdminPanel } from './views/adminView';
 import { CREATE_USERS_TABLE, CREATE_USER_IPS_TABLE, CREATE_PROXY_HEALTH_TABLE, CREATE_ADMIN_SESSION_TABLE } from './db/schema';
 import { expiryToISO } from './utils/time';
+
+// Lazy-loaded modules
+let _renderFuncs: any = null;
+let _wasmFuncs: any = null;
+
+async function getRenderFuncs() {
+  if (!_renderFuncs) {
+    const views = await import('./views/adminView');
+    const user = await import('./views/userView');
+    _renderFuncs = {
+      renderAdminLogin: views.renderAdminLogin,
+      renderAdminPanel: views.renderAdminPanel,
+      renderUserPanel: user.renderUserPanel
+    };
+  }
+  return _renderFuncs;
+}
+
+async function getWasmFuncs() {
+  if (!_wasmFuncs) {
+    _wasmFuncs = await import('./wasm/wasm');
+  }
+  return _wasmFuncs;
+}
 
 type Env = {
   DB: D1Database;
@@ -18,16 +39,21 @@ type Env = {
   ROOT_PROXY_URL?: string;
 };
 
-let appPromise: Promise<Hono<{ Bindings: Env }>> | null = null;
+let appInstance: Hono<{ Bindings: Env }> | null = null;
+let initPromise: Promise<void> | null = null;
 
-async function getApp(): Promise<Hono<{ Bindings: Env }>> {
-  if (appPromise) return appPromise;
-  appPromise = (async () => {
-    const app = new Hono<{ Bindings: Env }>();
-    await registerRoutes(app);
-    return app;
+async function initializeApp() {
+  if (initPromise) return initPromise;
+  if (appInstance) return;
+  
+  initPromise = (async () => {
+    if (!appInstance) {
+      appInstance = new Hono<{ Bindings: Env }>();
+      await registerRoutes(appInstance);
+    }
   })();
-  return appPromise;
+  
+  return initPromise;
 }
 
 async function registerRoutes(app: Hono<{ Bindings: Env }>) {
@@ -134,8 +160,10 @@ app.get('/admin', async (c: any) => {
   const headers = new Headers({ 'Content-Type': 'text/html;charset=utf-8' });
   addSecurityHeaders(headers);
   if (!allowed) {
+    const { renderAdminLogin } = await getRenderFuncs();
     return new Response(renderAdminLogin(adminBase + '/login'), { headers });
   }
+  const { renderAdminPanel } = await getRenderFuncs();
   return new Response(renderAdminPanel(), { headers });
 });
 
@@ -323,7 +351,10 @@ app.all('/ws', async (c: any) => {
     // if a prebuilt wasm glue is available as binding, try to init
     if (env.VLESS_WASM) {
       // wasm-bindgen style init may be provided as default export on binding
-      try { await initWasm(); } catch (e) { console.warn('WASM init failed', e); }
+      try { 
+        const { initWasm } = await getWasmFuncs();
+        await initWasm();
+      } catch (e) { console.warn('WASM init failed', e); }
     }
   } catch (e) { console.warn('wasm init skipped', e); }
 
@@ -377,6 +408,7 @@ app.all('/ws', async (c: any) => {
           // prefer wasm parser
           let parsed: any = null;
           try {
+            const { parseVlessHeader } = await getWasmFuncs();
             parsed = await parseVlessHeader(chunk);
           } catch (err) {
             console.warn('WASM parse failed, falling back to JS parser', err);
@@ -475,7 +507,7 @@ export { expiryToISO };
 
 export default {
   fetch: async (request: Request, env: any, ctx: any) => {
-    const a = await getApp();
-    return a.fetch(request as any, env, ctx);
+    await initializeApp();
+    return (appInstance as Hono<{ Bindings: Env }>).fetch(request as any, env, ctx);
   }
 };

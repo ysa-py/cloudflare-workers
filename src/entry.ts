@@ -1,10 +1,14 @@
-// Minimal bootstrap entry: defers heavy app initialization to first request
-// This keeps startup CPU low for Cloudflare Workers validation.
+// Absolute minimal entry point with truly deferred initialization
+// NO module-level code runs on startup - everything deferred to first request
+
+let cachedWorker: any = null;
 
 export default {
   async fetch(request: Request, env: any, ctx: any) {
-    // Import the actual app on first request (lazy load)
-    const { default: mainWorker } = await import('./index');
-    return mainWorker.fetch(request, env, ctx);
+    // Load worker on first request only
+    if (!cachedWorker) {
+      cachedWorker = (await import('./index')).default;
+    }
+    return cachedWorker.fetch(request, env, ctx);
   }
 };
