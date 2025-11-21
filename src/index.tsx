@@ -1,12 +1,33 @@
-import { Hono } from 'hono';
 import type { Context } from 'hono';
-import { z } from 'zod';
-import { CREATE_USERS_TABLE, CREATE_USER_IPS_TABLE, CREATE_PROXY_HEALTH_TABLE, CREATE_ADMIN_SESSION_TABLE } from './db/schema';
 import { expiryToISO } from './utils/time';
 
 // Lazy-loaded modules
 let _renderFuncs: any = null;
 let _wasmFuncs: any = null;
+let _hono: any = null;
+let _zod: any = null;
+let _schemas: any = null;
+
+async function getHono() {
+  if (!_hono) {
+    _hono = await import('hono');
+  }
+  return _hono;
+}
+
+async function getZod() {
+  if (!_zod) {
+    _zod = await import('zod');
+  }
+  return _zod;
+}
+
+async function getSchemas() {
+  if (!_schemas) {
+    _schemas = await import('./db/schema');
+  }
+  return _schemas;
+}
 
 async function getRenderFuncs() {
   if (!_renderFuncs) {
@@ -39,8 +60,9 @@ type Env = {
   ROOT_PROXY_URL?: string;
 };
 
-let appInstance: Hono<{ Bindings: Env }> | null = null;
+let appInstance: any = null;
 let initPromise: Promise<void> | null = null;
+let tablesInitialized = false;
 
 async function initializeApp() {
   if (initPromise) return initPromise;
@@ -48,12 +70,19 @@ async function initializeApp() {
   
   initPromise = (async () => {
     if (!appInstance) {
+      const { Hono } = await getHono();
       appInstance = new Hono<{ Bindings: Env }>();
       await registerRoutes(appInstance);
     }
   })();
   
   return initPromise;
+}
+
+async function ensureTablesInitialized(env: Env) {
+  if (tablesInitialized || !env.DB) return;
+  tablesInitialized = true;
+  await ensureTablesExist(env);
 }
 
 async function registerRoutes(app: Hono<{ Bindings: Env }>) {
@@ -154,7 +183,7 @@ async function ensureTablesExist(env: Env) {
 
 // Admin panel - render login or panel
 app.get('/admin', async (c: any) => {
-  await ensureTablesExist(c.env);
+  await ensureTablesInitialized(c.env);
   const allowed = await isAdminRequest(c as any);
   const adminBase = '/admin';
   const headers = new Headers({ 'Content-Type': 'text/html;charset=utf-8' });
@@ -171,7 +200,7 @@ app.get('/admin', async (c: any) => {
 app.get('/admin/api/stats', async (c: any) => {
   if (!(await isAdminRequest(c as any))) return c.json({ error: 'Forbidden' }, 403);
   const env = c.env;
-  await ensureTablesExist(env);
+  await ensureTablesInitialized(env);
   try {
     const total = await env.DB.prepare('SELECT COUNT(*) as count FROM users').first('count');
     const expiredRow = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE datetime(expiration_date || 'T' || expiration_time || 'Z') < datetime('now')").first('count');
@@ -508,6 +537,6 @@ export { expiryToISO };
 export default {
   fetch: async (request: Request, env: any, ctx: any) => {
     await initializeApp();
-    return (appInstance as Hono<{ Bindings: Env }>).fetch(request as any, env, ctx);
+    return appInstance.fetch(request as any, env, ctx);
   }
 };
