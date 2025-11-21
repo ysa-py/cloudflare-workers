@@ -14,8 +14,8 @@ d1_databases = [
 	{ binding = "DB", database_name = "VLESS_DB" }
 ]
 
-# wasm_modules map module name to the wasm file path
-wasm_modules = { vless_parser = "./src/rust/pkg/vless_parser_bg.wasm" }
+# wasm_modules will be provided via environment if needed
+# wasm_modules = { vless_parser = "./src/rust/pkg/vless_parser_bg.wasm" }
 
 # KV namespaces (optional). If you use a KV namespace, set the binding and id here.
 kv_namespaces = [
