@@ -5,6 +5,7 @@ import { initWasm, parseVlessHeader } from './wasm/wasm';
 import { renderUserPanel } from './views/userView';
 import { renderAdminLogin, renderAdminPanel } from './views/adminView';
 import { CREATE_USERS_TABLE, CREATE_USER_IPS_TABLE, CREATE_PROXY_HEALTH_TABLE, CREATE_ADMIN_SESSION_TABLE } from './db/schema';
+import { expiryToISO } from './utils/time';
 
 type Env = {
   DB: D1Database;
@@ -17,16 +18,23 @@ type Env = {
   ROOT_PROXY_URL?: string;
 };
 
-const app = new Hono<{ Bindings: Env }>();
+let app: Hono<{ Bindings: Env }> | null = null;
 
-// Simple helper: add security headers
+function getApp(): Hono<{ Bindings: Env }> {
+  if (app) return app;
+  app = new Hono<{ Bindings: Env }>();
+  registerRoutes(app);
+  return app;
+}
+
+function registerRoutes(app: Hono<{ Bindings: Env }>) {
+
+  // Simple helper: add security headers
 function addSecurityHeaders(headers: Headers) {
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   headers.set('Permissions-Policy', 'camera=(), microphone=()');
 }
-
-import { expiryToISO } from './utils/time';
 
 // Admin login
 app.post('/admin/login', async (c: any) => {
@@ -454,12 +462,17 @@ app.all('/ws', async (c: any) => {
 });
 
 // Static fallback (simple placeholder)
-app.get('/static/*', async (c) => {
-  return c.text('Static assets are not served from this build.');
-});
+  app.get('/static/*', async (c) => {
+    return c.text('Static assets are not served from this build.');
+  });
+
+}
 
 export { expiryToISO };
 
 export default {
-  fetch: app.fetch,
+  fetch: (request: Request, env: any, ctx: any) => {
+    const a = getApp();
+    return a.fetch(request as any, env, ctx);
+  }
 };
