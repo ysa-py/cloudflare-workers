@@ -40,9 +40,9 @@ jobs:
       - name: Run tests
         run: npm test --silent
 
-      - name: Publish to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v1
-        with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          # workingDirectory: '.'
-          args: publish
+      - name: Publish to Cloudflare Workers (wrangler CLI)
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          # Use npx to run the latest wrangler CLI without relying on a marketplace action
+          npx --yes wrangler@latest publish
