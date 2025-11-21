@@ -7,7 +7,10 @@
     "build:wasm": "cd src/rust && wasm-pack build --target web --out-dir ../rust/pkg",
     "build:bundle": "esbuild src/entry.ts --bundle --platform=browser --target=es2022 --format=esm --outdir=dist --splitting --external:./rust/pkg/vless_parser",
     "build:copy-wasm": "echo 'WASM handled by Cloudflare wasm_modules binding - skipping copy'",
-    "build:obfuscate": "for file in dist/*.js; do javascript-obfuscator \"$file\" --output dist-obf/\"$(basename \"$file\")\" --compact true --target browser --control-flow-flattening false --string-array true --string-array-threshold 0.5 --string-array-encoding base64 --string-array-index-shift false --string-array-rotate false --string-array-shuffle false --string-array-wrappers-count 0 --identifier-names-generator mangled-shuffled --self-defending true --dead-code-injection false --numbers-to-expressions false --simplify false --split-strings false --debug-protection false --unicode-escape-sequence false --log false; done",
+    "build:obfuscate": "mkdir -p dist-obf && if [ \"$SKIP_OBFUSCATION\" = \"1\" ] || [ \"$CI\" = \"true\" ]; then echo 'Skipping obfuscation (SKIP_OBFUSCATION or CI set) - copying files'; cp dist/*.js dist-obf/; else for file in dist/*.js; do base=$(basename \"$file\"); if [ \"$base\" = \"entry.js\" ]; then cp \"$file\" dist-obf/\"$base\"; else javascript-obfuscator \"$file\" --output dist-obf/\"$base\" --compact true --target browser --control-flow-flattening false --string-array true --string-array-threshold 0.5 --string-array-encoding base64 --string-array-index-shift false --string-array-rotate false --string-array-shuffle false --string-array-wrappers-count 0 --identifier-names-generator mangled-shuffled --self-defending true --dead-code-injection false --numbers-to-expressions false --simplify false --split-strings false --debug-protection false --unicode-escape-sequence false --log false; fi; done; fi",
+    "gen:wrangler-ci": "node scripts/gen-wrangler-ci.cjs",
+    "build:ci": "npm run gen:wrangler-ci && npm run build",
+    "publish:ci": "npm run build:ci && wrangler publish --config wrangler.ci.toml",
     "build": "npm run build:bundle && npm run build:copy-wasm && npm run build:obfuscate",
     "test": "vitest"
   },

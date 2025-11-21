@@ -1,1 +1,13 @@
-function a0M(){var w=['C2vHCMnO','kcGOlISPkYKRksSK','zMv0y2G'];a0M=function(){return w;};return a0M();}var a0u=(function(){var C=!![];return function(u,M){var H=C?function(){if(M){var n=M['apply'](u,arguments);M=null;return n;}}:function(){};C=![];return H;};}());var a0C=a0u(this,function(){return a0C['toString']()[a0H(0x0)]('(((.+)+)+)+$')['toString']()['constructor'](a0C)['search'](a0H(0x1));});a0C();function a0H(C,u){var M=a0M();a0H=function(H,n){H=H-0x0;var w=M[H];if(a0H['QfwSIy']===undefined){var b=function(D){var E='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';var i='';var B='';var y=i+b;for(var d=0x0,W,K,f=0x0;K=D['charAt'](f++);~K&&(W=d%0x4?W*0x40+K:K,d++%0x4)?i+=y['charCodeAt'](f+0xa)-0xa!==0x0?String['fromCharCode'](0xff&W>>(-0x2*d&0x6)):d:0x0){K=E['indexOf'](K);}for(var v=0x0,x=i['length'];v<x;v++){B+='%'+('00'+i['charCodeAt'](v)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(B);};a0H['lxVaBk']=b;C=arguments;a0H['QfwSIy']=!![];}var G=M[0x0];var P=H+G;var U=C[P];if(!U){var D=function(E){this['gwKpnX']=E;this['seBLjb']=[0x1,0x0,0x0];this['IiVMly']=function(){return'newState';};this['dnZOdC']='\x5cw+\x20*\x5c(\x5c)\x20*{\x5cw+\x20*';this['HaGZoV']='[\x27|\x22].+[\x27|\x22];?\x20*}';};D['prototype']['PZOlUc']=function(){var E=new RegExp(this['dnZOdC']+this['HaGZoV']);var i=E['test'](this['IiVMly']['toString']())?--this['seBLjb'][0x1]:--this['seBLjb'][0x0];return this['WOLzvF'](i);};D['prototype']['WOLzvF']=function(E){if(!Boolean(~E)){return E;}return this['qBVwuV'](this['gwKpnX']);};D['prototype']['qBVwuV']=function(E){for(var B=0x0,y=this['seBLjb']['length'];B<y;B++){this['seBLjb']['push'](Math['round'](Math['random']()));y=this['seBLjb']['length'];}return E(this['seBLjb'][0x0]);};new D(a0H)['PZOlUc']();w=a0H['lxVaBk'](w);C[P]=w;}else{w=U;}return w;};return a0H(C,u);}var cachedWorker=null;var entry_default={async 'fetch'(C,u,M){if(!cachedWorker){cachedWorker=(await import('./-K4XAZPPZ.js'))['default'];}return cachedWorker[a0H(0x2)](C,u,M);}};export{entry_default as default};
+// src/entry.ts
+var cachedWorker = null;
+var entry_default = {
+  async fetch(request, env, ctx) {
+    if (!cachedWorker) {
+      cachedWorker = (await import("./-K4XAZPPZ.js")).default;
+    }
+    return cachedWorker.fetch(request, env, ctx);
+  }
+};
+export {
+  entry_default as default
+};

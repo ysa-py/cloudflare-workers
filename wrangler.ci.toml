@@ -1,0 +1,26 @@
+name = "ultimate-vless-worker"
+main = "./dist-obf/entry.js"
+compatibility_date = "2025-11-21"
+
+# NOTE: Set your account id and any required bindings before publishing.
+# You can either add `account_id = "..."` here, or set the secret
+# `CLOUDFLARE_ACCOUNT_ID` or `CF_ACCOUNT_ID` in your CI provider.
+
+[build]
+command = "npm run build"
+
+# D1 databases should be an array of table objects
+d1_databases = [
+	{ binding = "DB", database_name = "VLESS_DB" }
+]
+
+# wasm_modules will be provided via environment if needed
+# wasm_modules = { vless_parser = "./src/rust/pkg/vless_parser_bg.wasm" }
+
+# KV namespaces (optional). If you use a KV namespace, set the binding and id here.
+kv_namespaces = [
+	{ binding = "SESSIONS_KV" }
+]
+
+[vars]
+ADMIN_PATH_PREFIX = "admin"
