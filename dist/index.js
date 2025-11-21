@@ -1918,7 +1918,8 @@ app.get("/admin/api/stats", async (c) => {
     const active = (total || 0) - expired;
     return c.json({ total_users: total || 0, active_users: active, expired_users: expired, total_traffic: totalTraffic || 0 });
   } catch (e) {
-    return c.json({ error: e.message }, 500);
+    const msg = e instanceof Error ? e.message : String(e);
+    return c.json({ error: msg }, 500);
   }
 });
 app.get("/admin/api/users", async (c) => {
@@ -1938,7 +1939,8 @@ app.post("/admin/api/users", async (c) => {
     await c.env.DB.prepare("INSERT INTO users (uuid, expiration_date, expiration_time, notes, traffic_limit, ip_limit, traffic_used) VALUES (?, ?, ?, ?, ?, ?, 0)").bind(uuid, exp_date, exp_time, notes || null, traffic_limit || null, ip_limit || -1).run();
     return c.json({ success: true, uuid }, 201);
   } catch (e) {
-    return c.json({ error: e.message }, 400);
+    const msg = e instanceof Error ? e.message : String(e);
+    return c.json({ error: msg }, 400);
   }
 });
 app.put("/admin/api/users/:uuid", async (c) => {
@@ -1957,7 +1959,8 @@ app.put("/admin/api/users/:uuid", async (c) => {
     await c.env.DB.prepare(query).bind(exp_date, exp_time, notes || null, traffic_limit || null, ip_limit || -1, uuid).run();
     return c.json({ success: true, uuid });
   } catch (e) {
-    return c.json({ error: e.message }, 400);
+    const msg = e instanceof Error ? e.message : String(e);
+    return c.json({ error: msg }, 400);
   }
 });
 app.delete("/admin/api/users/:uuid", async (c) => {
@@ -1968,7 +1971,8 @@ app.delete("/admin/api/users/:uuid", async (c) => {
     await c.env.DB.prepare("DELETE FROM users WHERE uuid = ?").bind(uuid).run();
     return c.json({ success: true, uuid });
   } catch (e) {
-    return c.json({ error: e.message }, 500);
+    const msg = e instanceof Error ? e.message : String(e);
+    return c.json({ error: msg }, 500);
   }
 });
 app.post("/admin/api/health-check", async (c) => {
@@ -1999,7 +2003,7 @@ app.post("/admin/api/health-check", async (c) => {
     await env.DB.batch(stmts);
     return c.json({ success: true });
   } catch (e) {
-    return c.json({ error: e.message }, 500);
+    return c.json({ error: e?.message || String(e) }, 500);
   }
 });
 app.post("/admin/logout", async (c) => {
@@ -2100,7 +2104,7 @@ app.all("/ws", async (c) => {
   } catch (e) {
     console.warn("wasm init skipped", e);
   }
-  const webSocketPair = new WebSocketPair();
+  const webSocketPair = new globalThis.WebSocketPair();
   const [client, server] = Object.values(webSocketPair);
   server.accept();
   let sessionUsage = 0;
@@ -2221,7 +2225,8 @@ app.all("/ws", async (c) => {
   });
   const headers = new Headers();
   addSecurityHeaders(headers);
-  return new Response(null, { status: 101, webSocket: client, headers });
+  const resInit = { status: 101, webSocket: client, headers };
+  return new Response(null, resInit);
 });
 app.get("/static/*", async (c) => {
   return c.text("Static assets are not served from this build.");
