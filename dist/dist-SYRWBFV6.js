@@ -1,5 +1,3 @@
-import "./chunk-6C3VEZWH.js";
-
 // node_modules/hono/dist/utils/url.js
 var splitPath = (path) => {
   const paths = path.split("/");

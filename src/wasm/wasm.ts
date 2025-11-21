@@ -1,18 +1,24 @@
-// Lightweight wrapper expecting wasm-bindgen generated package to be available
-// during build at `./rust/pkg/vless_parser.js`. This module provides
-// `init()` and `parse_vless_header` exported by wasm-bindgen.
+// WASM module loader - uses Cloudflare's native WASM binding
+// Dynamically loads from vless_parser binding provided by wrangler.toml
 
 let wasmReady = false;
 let wasmModule: any = null;
 
-export async function initWasm(gluePath?: string) {
+export async function initWasm(wasmBinding?: any) {
   if (wasmReady) return wasmModule;
   try {
-    // try dynamic import of generated wasm-bindgen glue
-    const path = gluePath || './rust/pkg/vless_parser.js';
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const mod = await import(path);
+    // For Cloudflare Workers, the WASM is provided as a binding
+    // in the environment via wrangler.toml wasm_modules configuration.
+    // We'll lazily initialize it when first called.
+    if (wasmBinding) {
+      wasmModule = wasmBinding;
+      wasmReady = true;
+      return wasmModule;
+    }
+    
+    // Fallback: try dynamic import (for local testing)
+    console.debug('WASM binding not provided, attempting dynamic import');
+    const mod = await import('./rust/pkg/vless_parser.js');
     if (typeof mod.default === 'function') {
       await mod.default();
     }

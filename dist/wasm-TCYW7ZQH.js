@@ -1,14 +1,17 @@
-import "./chunk-6C3VEZWH.js";
-
 // src/wasm/wasm.ts
 var wasmReady = false;
 var wasmModule = null;
-async function initWasm(gluePath) {
+async function initWasm(wasmBinding) {
   if (wasmReady)
     return wasmModule;
   try {
-    const path = gluePath || "./rust/pkg/vless_parser.js";
-    const mod = await import(path);
+    if (wasmBinding) {
+      wasmModule = wasmBinding;
+      wasmReady = true;
+      return wasmModule;
+    }
+    console.debug("WASM binding not provided, attempting dynamic import");
+    const mod = await import("./rust/pkg/vless_parser.js");
     if (typeof mod.default === "function") {
       await mod.default();
     }

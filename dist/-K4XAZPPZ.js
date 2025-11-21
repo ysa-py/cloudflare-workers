@@ -1,5 +1,3 @@
-import "./chunk-6C3VEZWH.js";
-
 // src/utils/time.ts
 function expiryToISO(dateStr, timeStr) {
   if (!dateStr || !timeStr)
@@ -18,14 +16,14 @@ var _wasmFuncs = null;
 var _hono = null;
 async function getHono() {
   if (!_hono) {
-    _hono = await import("./dist-EJVHA5IP.js");
+    _hono = await import("./dist-SYRWBFV6.js");
   }
   return _hono;
 }
 async function getRenderFuncs() {
   if (!_renderFuncs) {
-    const views = await import("./adminView-PDCS76LA.js");
-    const user = await import("./userView-UXVA5P2I.js");
+    const views = await import("./adminView-AR5ZPHTM.js");
+    const user = await import("./userView-LESDTDQK.js");
     _renderFuncs = {
       renderAdminLogin: views.renderAdminLogin,
       renderAdminPanel: views.renderAdminPanel,
@@ -36,7 +34,7 @@ async function getRenderFuncs() {
 }
 async function getWasmFuncs() {
   if (!_wasmFuncs) {
-    _wasmFuncs = await import("./wasm-LZBCYNKY.js");
+    _wasmFuncs = await import("./wasm-TCYW7ZQH.js");
   }
   return _wasmFuncs;
 }
@@ -354,10 +352,10 @@ async function registerRoutes(app) {
       return c.text("Must upgrade to WebSocket", 400);
     }
     try {
-      if (env.VLESS_WASM) {
+      if (env.vless_parser) {
         try {
           const { initWasm } = await getWasmFuncs();
-          await initWasm();
+          await initWasm(env.vless_parser);
         } catch (e) {
           console.warn("WASM init failed", e);
         }

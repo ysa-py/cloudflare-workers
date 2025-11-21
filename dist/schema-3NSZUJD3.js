@@ -1,5 +1,3 @@
-import "./chunk-6C3VEZWH.js";
-
 // src/db/schema.ts
 var CREATE_USERS_TABLE = `
 CREATE TABLE IF NOT EXISTS users (

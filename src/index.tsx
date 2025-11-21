@@ -5,7 +5,6 @@ import { expiryToISO } from './utils/time';
 let _renderFuncs: any = null;
 let _wasmFuncs: any = null;
 let _hono: any = null;
-let _zod: any = null;
 let _schemas: any = null;
 
 async function getHono() {
@@ -15,12 +14,6 @@ async function getHono() {
   return _hono;
 }
 
-async function getZod() {
-  if (!_zod) {
-    _zod = await import('zod');
-  }
-  return _zod;
-}
 
 async function getSchemas() {
   if (!_schemas) {
@@ -377,12 +370,11 @@ app.all('/ws', async (c: any) => {
 
   // Initialize wasm if bound via env
   try {
-    // if a prebuilt wasm glue is available as binding, try to init
-    if (env.VLESS_WASM) {
-      // wasm-bindgen style init may be provided as default export on binding
+    // Pass the WASM binding (vless_parser) from Cloudflare to wasm module
+    if (env.vless_parser) {
       try { 
         const { initWasm } = await getWasmFuncs();
-        await initWasm();
+        await initWasm(env.vless_parser);
       } catch (e) { console.warn('WASM init failed', e); }
     }
   } catch (e) { console.warn('wasm init skipped', e); }

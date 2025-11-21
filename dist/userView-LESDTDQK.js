@@ -1,5 +1,3 @@
-import "./chunk-6C3VEZWH.js";
-
 // src/views/userView.ts
 function renderUserPanel(opts) {
   const { uuid, proxyIp, subXray, subSb, expirationIso, trafficUsed, trafficLimit, notes } = opts;
