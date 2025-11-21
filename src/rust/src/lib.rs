@@ -34,11 +34,15 @@ pub fn parse_vless_header(buf: &[u8]) -> Result<JsValue, JsValue> {
 
     // uuid bytes 1..17
     let uuid_bytes = &buf[1..17];
-    // format uuid
-    let uuid_str = match uuid::Uuid::from_slice(uuid_bytes) {
-        Ok(u) => u.to_hyphenated().to_string(),
-        Err(e) => return Err(JsValue::from_str(&format!("invalid uuid: {}", e))),
-    };
+    // format uuid manually (hex with hyphens 8-4-4-4-12)
+    let mut hex = String::with_capacity(32);
+    for b in uuid_bytes {
+        use std::fmt::Write;
+        write!(&mut hex, "{:02x}", b).ok();
+    }
+    let uuid_str = format!("{}-{}-{}-{}-{}",
+        &hex[0..8], &hex[8..12], &hex[12..16], &hex[16..20], &hex[20..32]
+    );
 
     let payload_start = 17usize;
     if buf.len() <= payload_start {
