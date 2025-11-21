@@ -73,10 +73,28 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          # Deploy using wrangler; Wrangler v4 does not accept --account-id flag.
+          # If an account id secret is provided, inject it into a temporary wrangler config
+          set -euo pipefail
           if [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
-            echo "Deploying with account ID from secret..."
-            npx --yes wrangler@latest deploy --account-id "$CLOUDFLARE_ACCOUNT_ID"
+            echo "Injecting account_id from CLOUDFLARE_ACCOUNT_ID into wrangler.ci.toml"
+            cp wrangler.toml wrangler.ci.toml
+            if grep -qE "^\s*account_id\s*=\s*\".*\"\s*$" wrangler.ci.toml; then
+              sed -i -E "s/^\s*account_id\s*=.*/account_id = \"${CLOUDFLARE_ACCOUNT_ID}\"/" wrangler.ci.toml
+            else
+              echo "account_id = \"${CLOUDFLARE_ACCOUNT_ID}\"" >> wrangler.ci.toml
+            fi
+            npx --yes wrangler@latest deploy --config ./wrangler.ci.toml
+          elif [ -n "${CF_ACCOUNT_ID:-}" ]; then
+            echo "Injecting account_id from CF_ACCOUNT_ID into wrangler.ci.toml"
+            cp wrangler.toml wrangler.ci.toml
+            if grep -qE "^\s*account_id\s*=\s*\".*\"\s*$" wrangler.ci.toml; then
+              sed -i -E "s/^\s*account_id\s*=.*/account_id = \"${CF_ACCOUNT_ID}\"/" wrangler.ci.toml
+            else
+              echo "account_id = \"${CF_ACCOUNT_ID}\"" >> wrangler.ci.toml
+            fi
+            npx --yes wrangler@latest deploy --config ./wrangler.ci.toml
           else
-            echo "Deploying with account ID from wrangler.toml..."
+            echo "Deploying using account_id in wrangler.toml"
             npx --yes wrangler@latest deploy
           fi
