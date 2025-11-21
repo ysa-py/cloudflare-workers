@@ -1,5 +1,5 @@
 name = "ultimate-vless-worker"
-main = "./dist-obf/index.js"
+main = "./dist-obf/entry.js"
 compatibility_date = "2025-11-21"
 
 # NOTE: Set your account id and any required bindings before publishing.

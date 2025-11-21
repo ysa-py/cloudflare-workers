@@ -114,5 +114,8 @@ pub fn parse_vless_header(buf: &[u8]) -> Result<JsValue, JsValue> {
         port,
     };
 
-    JsValue::from_serde(&hdr).map_err(|e| JsValue::from_str(&format!("serialize error: {}", e)))
+    match serde_json::to_string(&hdr) {
+        Ok(json_str) => JsValue::from_str(&json_str),
+        Err(e) => Err(JsValue::from_str(&format!("serialize error: {}", e))),
+    }.map_err(|_| JsValue::from_str("failed to serialize header"))
 }

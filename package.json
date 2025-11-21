@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "build:wasm": "cd src/rust && wasm-pack build --target web --out-dir ../rust/pkg",
-    "build:bundle": "esbuild src/index.tsx --bundle --platform=browser --target=es2022 --format=esm --outfile=dist/index.js",
+    "build:bundle": "esbuild src/entry.ts --bundle --platform=browser --target=es2022 --format=esm --outdir=dist --splitting",
     "build:copy-wasm": "mkdir -p dist/pkg && if [ -d src/rust/pkg ]; then cp -R src/rust/pkg/* dist/pkg/; fi",
-    "build:obfuscate": "javascript-obfuscator dist/index.js --output dist-obf/index.js --compact true --self-defending true",
+    "build:obfuscate": "for file in dist/*.js; do javascript-obfuscator \"$file\" --output dist-obf/\"$(basename \"$file\")\" --compact true --self-defending true; done",
     "build": "(command -v wasm-pack >/dev/null 2>&1 && npm run build:wasm) || echo 'wasm-pack not found, skipping wasm build'; npm run build:bundle && npm run build:copy-wasm && npm run build:obfuscate",
     "test": "vitest"
   },

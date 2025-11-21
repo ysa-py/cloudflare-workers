@@ -18,16 +18,19 @@ type Env = {
   ROOT_PROXY_URL?: string;
 };
 
-let app: Hono<{ Bindings: Env }> | null = null;
+let appPromise: Promise<Hono<{ Bindings: Env }>> | null = null;
 
-function getApp(): Hono<{ Bindings: Env }> {
-  if (app) return app;
-  app = new Hono<{ Bindings: Env }>();
-  registerRoutes(app);
-  return app;
+async function getApp(): Promise<Hono<{ Bindings: Env }>> {
+  if (appPromise) return appPromise;
+  appPromise = (async () => {
+    const app = new Hono<{ Bindings: Env }>();
+    await registerRoutes(app);
+    return app;
+  })();
+  return appPromise;
 }
 
-function registerRoutes(app: Hono<{ Bindings: Env }>) {
+async function registerRoutes(app: Hono<{ Bindings: Env }>) {
 
   // Simple helper: add security headers
 function addSecurityHeaders(headers: Headers) {
@@ -471,8 +474,8 @@ app.all('/ws', async (c: any) => {
 export { expiryToISO };
 
 export default {
-  fetch: (request: Request, env: any, ctx: any) => {
-    const a = getApp();
+  fetch: async (request: Request, env: any, ctx: any) => {
+    const a = await getApp();
     return a.fetch(request as any, env, ctx);
   }
 };
