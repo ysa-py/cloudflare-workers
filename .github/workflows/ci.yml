@@ -39,10 +39,30 @@ jobs:
 
       - name: Run tests
         run: npm test --silent
+      - name: Validate wrangler config and credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Checking wrangler.toml for account_id..."
+          if [ ! -f wrangler.toml ]; then
+            echo "Error: wrangler.toml not found in repository root." >&2
+            exit 1
+          fi
+          # crude parse for account_id key
+          if ! grep -E "^\s*account_id\s*=\s*\"[0-9a-fA-F]+\"\s*$" wrangler.toml &>/dev/null; then
+            echo "Error: wrangler.toml does not contain a valid account_id entry. Please add 'account_id = \"<your_account_id>\"'" >&2
+            exit 1
+          fi
+          echo "Validating Cloudflare credentials with 'wrangler whoami'..."
+          # run a lightweight whoami check to verify token; will fail if token is missing/invalid
+          npx --yes wrangler@latest whoami || (echo "wrangler whoami failed - check CLOUDFLARE_API_TOKEN secret" >&2; exit 1)
 
       - name: Publish to Cloudflare Workers (wrangler CLI)
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
-          # Use npx to run the latest wrangler CLI without relying on a marketplace action
-          npx --yes wrangler@latest publish
+          # Deploy using wrangler; errors will fail the job
+          npx --yes wrangler@latest deploy
