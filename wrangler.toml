@@ -1,0 +1,25 @@
+name = "ultimate-vless-worker"
+main = "./dist-obf/index.js"
+compatibility_date = "2025-11-21"
+
+# NOTE: Set your account id and any required bindings before publishing.
+# Example:
+# account_id = "your-account-id"
+# Uncomment and set above or provide via environment in your CI.
+
+[build]
+command = "npm run build"
+
+[d1_databases]
+DATABASE = { binding = "DB", database_name = "VLESS_DB" }
+
+[wasm_modules]
+# After building with wasm-pack, bind the generated wasm (adjust path as needed)
+vless_parser = { binding = "VLESS_WASM", module = "./src/rust/pkg/vless_parser_bg.wasm" }
+
+[bindings]
+type = "kv_namespace"
+name = "SESSIONS_KV"
+
+[vars]
+ADMIN_PATH_PREFIX = "admin"

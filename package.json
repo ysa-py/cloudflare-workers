@@ -1,0 +1,25 @@
+{
+  "name": "ultimate-vless-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:wasm": "cd src/rust && wasm-pack build --target web --out-dir ../rust/pkg",
+    "build:bundle": "esbuild src/index.tsx --bundle --platform=browser --target=es2022 --format=esm --outfile=dist/index.js",
+    "build:copy-wasm": "mkdir -p dist/pkg && if [ -d src/rust/pkg ]; then cp -R src/rust/pkg/* dist/pkg/; fi",
+    "build:obfuscate": "javascript-obfuscator dist/index.js --output dist-obf/index.js --compact true --self-defending true",
+    "build": "(command -v wasm-pack >/dev/null 2>&1 && npm run build:wasm) || echo 'wasm-pack not found, skipping wasm build'; npm run build:bundle && npm run build:copy-wasm && npm run build:obfuscate",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251121.0",
+    "esbuild": "^0.19.0",
+    "javascript-obfuscator": "^4.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.6.1"
+  },
+  "dependencies": {
+    "hono": "^3.0.0",
+    "zod": "^4.1.12"
+  }
+}
