@@ -92,8 +92,16 @@ app.post('/admin/login', async (c: any) => {
   const env = c.env;
   const form = await c.req.formData();
   const password = form.get('password')?.toString() || '';
-  if (!env.ADMIN_KEY) return c.text('Admin not configured', 503);
-  if (password !== env.ADMIN_KEY) return c.text('Invalid', 401);
+  // allow either an ADMIN_KEY binding or a stored DB-configured admin key (bootstrap)
+  const storedHash = await getStoredAdminHash(env);
+  if (!env.ADMIN_KEY && !storedHash) return c.text('Admin not configured', 503);
+
+  if (env.ADMIN_KEY) {
+    if (password !== env.ADMIN_KEY) return c.text('Invalid', 401);
+  } else {
+    const passHash = await hashSHA256Hex(password);
+    if (passHash !== storedHash) return c.text('Invalid', 401);
+  }
   // create simple session token
   const token = crypto.randomUUID();
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
@@ -110,6 +118,30 @@ app.post('/admin/login', async (c: any) => {
   headers.append('Set-Cookie', `auth_token=${token}; HttpOnly; Secure; Path=/; Max-Age=86400; SameSite=Strict`);
   addSecurityHeaders(headers);
   return c.text('OK', 200, { headers });
+});
+
+// Serve admin login page directly
+app.get('/admin/login', async (c: any) => {
+  await ensureTablesInitialized(c.env);
+  const headers = new Headers({ 'Content-Type': 'text/html;charset=utf-8' });
+  addSecurityHeaders(headers);
+  const { renderAdminLogin } = await getRenderFuncs();
+  return new Response(renderAdminLogin('/admin/login'), { headers });
+});
+
+// Bootstrap admin: set initial admin password when no ADMIN_KEY env and no stored admin exists.
+app.post('/admin/setup', async (c: any) => {
+  const env = c.env;
+  if (env.ADMIN_KEY) return c.text('Admin configured via env; setup disabled', 403);
+  await ensureTablesInitialized(env);
+  const stored = await getStoredAdminHash(env);
+  if (stored) return c.text('Admin already configured', 403);
+  const form = await c.req.formData();
+  const password = form.get('password')?.toString() || '';
+  if (!password || password.length < 8) return c.text('Password must be at least 8 characters', 400);
+  const hash = await hashSHA256Hex(password);
+  const ok = await setStoredAdminHash(env, hash);
+  return ok ? c.text('OK', 201) : c.text('Failed', 500);
 });
 
 async function hashSHA256Hex(str: string) {
@@ -165,12 +197,39 @@ async function ensureTablesExist(env: Env) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       expires_at INTEGER
     )`
+    ,`CREATE TABLE IF NOT EXISTS admin_config (
+      id TEXT PRIMARY KEY,
+      key_hash TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`
   ];
   try {
     const stmts = create.map(s => env.DB.prepare(s));
     await env.DB.batch(stmts);
   } catch (e) {
     console.warn('ensureTablesExist failed', e);
+  }
+}
+
+async function getStoredAdminHash(env: Env) {
+  if (!env.DB) return null;
+  try {
+    const row = await env.DB.prepare('SELECT key_hash FROM admin_config WHERE id = ?').bind('default').first();
+    return row?.key_hash || null;
+  } catch (e) {
+    console.warn('getStoredAdminHash error', e);
+    return null;
+  }
+}
+
+async function setStoredAdminHash(env: Env, hash: string) {
+  if (!env.DB) return false;
+  try {
+    await env.DB.prepare('INSERT OR REPLACE INTO admin_config (id, key_hash) VALUES (?, ?)').bind('default', hash).run();
+    return true;
+  } catch (e) {
+    console.warn('setStoredAdminHash error', e);
+    return false;
   }
 }
 

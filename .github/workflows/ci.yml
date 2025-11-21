@@ -40,6 +40,38 @@ jobs:
       - name: Run tests
         run: npm test --silent
 
+      - name: Ensure D1 Database exists (idempotent)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          DB_NAME="VLESS_DB"
+          echo "Ensuring D1 database $DB_NAME exists..."
+          npx --yes wrangler@latest d1 create "$DB_NAME" --binding DB || echo "D1 DB already exists or cannot be created in CI."
+          npx --yes wrangler@latest d1 list
+
+      - name: Inject secrets into Cloudflare (secure)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          SCAMALYTICS_USERNAME: ${{ secrets.SCAMALYTICS_USERNAME }}
+          SCAMALYTICS_API_KEY: ${{ secrets.SCAMALYTICS_API_KEY }}
+          PROXYIPS: ${{ secrets.PROXYIPS }}
+          ROOT_PROXY_URL: ${{ secrets.ROOT_PROXY_URL }}
+        run: |
+          set -euo pipefail
+          for secret in ADMIN_KEY SCAMALYTICS_USERNAME SCAMALYTICS_API_KEY PROXYIPS ROOT_PROXY_URL; do
+            value="${!secret}"
+            if [ -n "$value" ]; then
+              echo "Injecting $secret as wrangler secret..."
+              echo "$value" | npx --yes wrangler@latest secret put "$secret" || true
+            else
+              echo "Secret $secret not set, skipping."
+            fi
+          done
+
       - name: Validate wrangler config and credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}

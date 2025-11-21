@@ -2,25 +2,53 @@ name = "ultimate-vless-worker"
 main = "./dist-obf/entry.js"
 compatibility_date = "2025-11-21"
 
+
 # NOTE: Set your account id and any required bindings before publishing.
 # You can either add `account_id = "..."` here, or set the secret
 # `CLOUDFLARE_ACCOUNT_ID` or `CF_ACCOUNT_ID` in your CI provider.
+#
+# Required bindings for this project:
+#   - D1 Database: DB (see [d1_databases] below)
+#   - WASM module: VLESS_WASM (optional, see [wasm_modules])
+#   - KV Namespace: SESSIONS_KV (optional, see [kv_namespaces])
+#   - Environment variables (see [vars] and secrets for sensitive values)
+#
+# For CI/CD, set these as GitHub Actions secrets:
+#   - CLOUDFLARE_API_TOKEN (required)
+#   - CLOUDFLARE_ACCOUNT_ID (required if not in wrangler.toml)
+#   - ADMIN_KEY (optional, for admin login; if not set, use /admin/setup to bootstrap)
+#   - SCAMALYTICS_USERNAME (optional, for scam IP checks)
+#   - SCAMALYTICS_API_KEY (optional, for scam IP checks)
+#   - PROXYIPS (optional, comma-separated list of proxy IPs)
+#   - ROOT_PROXY_URL (optional, for upstream proxy)
 
 [build]
 command = "npm run build"
 
-# D1 databases should be an array of table objects
+
+# D1 databases
 d1_databases = [
-	{ binding = "DB", database_name = "VLESS_DB" }
+  { binding = "DB", database_name = "VLESS_DB" }
 ]
 
-# wasm_modules will be provided via environment if needed
+
+# WASM modules (uncomment if needed)
 # wasm_modules = { vless_parser = "./src/rust/pkg/vless_parser_bg.wasm" }
 
-# KV namespaces (optional). If you use a KV namespace, set the binding and id here.
+
+# KV namespaces (uncomment and set id if needed)
 kv_namespaces = [
-	{ binding = "SESSIONS_KV" }
+  { binding = "SESSIONS_KV" }
 ]
 
+
 [vars]
+# Non-secret environment variables (set here or via CI)
 ADMIN_PATH_PREFIX = "admin"
+# Example: ROOT_PROXY_URL = "https://proxy.example.com"
+# Example: PROXYIPS = "1.2.3.4,5.6.7.8"
+
+# Secrets (do NOT set here; set via wrangler secret or CI secrets):
+#   - ADMIN_KEY
+#   - SCAMALYTICS_USERNAME
+#   - SCAMALYTICS_API_KEY
