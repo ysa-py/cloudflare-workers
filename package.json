@@ -7,7 +7,7 @@
     "build:wasm": "cd src/rust && wasm-pack build --target web --out-dir ../rust/pkg",
     "build:bundle": "esbuild src/entry.ts --bundle --platform=browser --target=es2022 --format=esm --outdir=dist --splitting",
     "build:copy-wasm": "mkdir -p dist/pkg && if [ -d src/rust/pkg ]; then cp -R src/rust/pkg/* dist/pkg/; fi",
-    "build:obfuscate": "for file in dist/*.js; do javascript-obfuscator \"$file\" --output dist-obf/\"$(basename \"$file\")\" --compact true --self-defending true; done",
+    "build:obfuscate": "for file in dist/*.js; do javascript-obfuscator \"$file\" --output dist-obf/\"$(basename \"$file\")\" --compact true --target browser --control-flow-flattening false --dead-code-injection true --dead-code-injection-threshold 0.3 --identifier-names-generator mangled-shuffled --numbers-to-expressions true --self-defending true --simplify true --split-strings true --split-strings-chunk-length 5 --string-array true --string-array-threshold 0.75 --string-array-encoding base64 --string-array-index-shift true --string-array-rotate true --string-array-shuffle true --string-array-wrappers-count 2 --string-array-wrappers-chained-calls true --string-array-wrappers-parameters-max-count 3 --string-array-wrappers-type function --transform-object-keys true --disable-console-output true --log false; done",
     "build": "(command -v wasm-pack >/dev/null 2>&1 && npm run build:wasm) || echo 'wasm-pack not found, skipping wasm build'; npm run build:bundle && npm run build:copy-wasm && npm run build:obfuscate",
     "test": "vitest"
   },
