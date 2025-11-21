@@ -43,6 +43,8 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
           set -euo pipefail
           echo "Checking wrangler.toml for account_id..."
@@ -50,10 +52,16 @@ jobs:
             echo "Error: wrangler.toml not found in repository root." >&2
             exit 1
           fi
-          # crude parse for account_id key
-          if ! grep -E "^\s*account_id\s*=\s*\"[0-9a-fA-F]+\"\s*$" wrangler.toml &>/dev/null; then
-            echo "Error: wrangler.toml does not contain a valid account_id entry. Please add 'account_id = \"<your_account_id>\"'" >&2
-            exit 1
+          # crude parse for account_id key (hex id assumed)
+          if grep -E "^\s*account_id\s*=\s*\"[0-9a-fA-F]+\"\s*$" wrangler.toml &>/dev/null; then
+            echo "Found account_id in wrangler.toml"
+          else
+            if [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ] || [ -n "${CF_ACCOUNT_ID:-}" ]; then
+              echo "No account_id in wrangler.toml, using account id from repository secret."
+            else
+              echo "Error: wrangler.toml does not contain a valid account_id entry and no account id secret provided. Please add 'account_id = \"<your_account_id>\"' to wrangler.toml or set the secret CLOUDFLARE_ACCOUNT_ID." >&2
+              exit 1
+            fi
           fi
           echo "Validating Cloudflare credentials with 'wrangler whoami'..."
           # run a lightweight whoami check to verify token; will fail if token is missing/invalid
@@ -63,6 +71,17 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
-          # Deploy using wrangler; errors will fail the job
-          npx --yes wrangler@latest deploy
+          # Deploy using wrangler; if an account id secret is set, pass it explicitly
+          if [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "Deploying with account id from CLOUDFLARE_ACCOUNT_ID secret"
+            npx --yes wrangler@latest deploy --account-id "$CLOUDFLARE_ACCOUNT_ID"
+          elif [ -n "${CF_ACCOUNT_ID:-}" ]; then
+            echo "Deploying with account id from CF_ACCOUNT_ID secret"
+            npx --yes wrangler@latest deploy --account-id "$CF_ACCOUNT_ID"
+          else
+            echo "Deploying using account_id in wrangler.toml"
+            npx --yes wrangler@latest deploy
+          fi
